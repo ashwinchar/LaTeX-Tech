@@ -39,6 +39,8 @@ def process_images_in_directory(source_dir, target_dir):
             if not os.path.exists(save_path):
                 os.makedirs(save_path)
 
-source_directory = '../data/extracted_images'
-target_directory = '../data/processed_images'
+# source_directory = '../data/extracted_images'
+# target_directory = '../data/processed_images'
+source_directory = '../data/test_input'
+target_directory = '../data/test_output'
 process_images_in_directory(source_directory, target_directory)
