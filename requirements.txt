@@ -1,1 +1,6 @@
 patool
+cv
+tensorflow
+matplotlib
+pillow
+numpy
