@@ -30,7 +30,7 @@ def process_images_in_directory(source_dir, target_dir):
                     os.makedirs(save_directory)
                 process_and_save_image(file_path, save_path)
                 if count%100==0:
-                    print("processed " + count + " images, last processed image: " + save_path)
+                    print("processed " + str(count) + " images, last processed image: " + save_path)
                 count+=1
         for name in dirs:
             # Create corresponding directories in the target structure
