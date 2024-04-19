@@ -21,7 +21,28 @@ def load_from_folder(folder):
 
 data=[]
 labels=[]
-class_folders = ['=', '-', '+', '(', ')', '�']
+class_folders = []
+for folder in os.listdir("../data/processed_images"):
+    class_folders.append(folder)
+    
+test=[]
+test_labels=[]
+train=[]
+train_labels=[]
+validation=[]
+val_labels=[]
+for folder in class_folders:
+    samples=os.listdir("../data/processed_images/"+folder)
+    train+=samples[0:int(len(samples)*0.6)]
+    for i in range(int(len(samples)*0.6)):
+        train_labels+=folder
+    test+=samples[int(len(samples)*0.6):int(len(samples)*0.8)]
+    for i in range(int(len(samples)*0.6), int(len(samples)*0.8)):
+        test_labels+=folder
+    validation+=samples[int(len(samples)*0.8):]
+    for i in range(int(len(samples)*0.8), len(samples)):
+        val_labels+=folder
+
 
 '''
 The input layer is the first layer in the network and it is where the input data is fed into the network. 
@@ -47,6 +68,8 @@ model.add(layers.Dense(10))
 model.compile(optimizer='adam',
               loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
               metrics=['accuracy'])
+
+model.train_()
 
 # history = model.fit(train_images, train_labels, epochs=10, 
 #                     validation_data=(test_images, test_labels))
