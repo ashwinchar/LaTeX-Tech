@@ -1,6 +1,10 @@
 import cv2
 import numpy as np
 import os
+import numpy as np
+import tensorflow as tf
+import keras
+from PIL import Image
 
 import cv2
 
@@ -104,17 +108,32 @@ def segment_and_classify(image_path):
     for (x, y, w, h) in bounding_boxes:
         cv2.rectangle(image, (x, y), (x+w, y+h), (255, 0, 0), 2)
     
-    cv2.imshow('Segmented Image with Bounding Boxes', image)
+    #cv2.imshow('Segmented Image with Bounding Boxes', image)
 
     cropped_images = []
     for index, (x, y, w, h) in enumerate(bounding_boxes):
         cropped_image = crop_and_blackout(bin_image_path, bounding_boxes, bounding_boxes[index])
         cropped_images.append(cropped_image)
         window_name = f'Cropped Image {index+1}'
-        cv2.imshow(window_name, cropped_image)
+        #cv2.imshow(window_name, cropped_image)
 
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
+    # cv2.waitKey(0)
+    # cv2.destroyAllWindows()
+    model = keras.models.load_model('../keras/model.keras')
+    for img in cropped_images:
+        img_pil = Image.fromarray(img)
+        img_pil = img_pil.convert('L')
+        img_resized = img_pil.resize((32, 32))
+        img_array = np.array(img_resized)
+        img_array = img_array.reshape((32, 32, 1))  # Correct channel information
+        img_array = img_array / 255.0  # Normalization
+        img_array = np.expand_dims(img_array, axis=0)  # Batch dimension for prediction
+        prediction = model.predict(img_array)
+        e_x = np.exp(prediction - np.max(prediction))
+        probabilities = e_x / e_x.sum(axis=1, keepdims=True)
+        predicted_class = np.argmax(probabilities, axis=1)
+        print(predicted_class)
+    
 
 # Example usage
 bin_image_path = '../data/test_input/test_segment.png'
