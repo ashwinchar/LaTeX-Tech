@@ -1,4 +1,5 @@
 import tensorflow as tf
+import pickle
 import numpy as np
 from tensorflow.keras import datasets, layers, models
 import matplotlib.pyplot as plt
@@ -21,6 +22,7 @@ def load_from_folder(folder):
 
 data=[]
 labels=[]
+#print(labels)
 class_folders = []
 for folder in os.listdir("../data/processed_images"):
     class_folders.append(folder)
@@ -31,17 +33,33 @@ train=[]
 train_labels=[]
 validation=[]
 val_labels=[]
+label_dict={}
+
+#assigning numbers to each class
+for i in range(len(class_folders)):
+    label_dict[class_folders[i]]=i
+
 for folder in class_folders:
     samples=os.listdir("../data/processed_images/"+folder)
     train+=samples[0:int(len(samples)*0.6)]
     for i in range(int(len(samples)*0.6)):
-        train_labels+=folder
+        train_labels.append(label_dict[folder])
     test+=samples[int(len(samples)*0.6):int(len(samples)*0.8)]
     for i in range(int(len(samples)*0.6), int(len(samples)*0.8)):
-        test_labels+=folder
+        test_labels.append(label_dict[folder])
     validation+=samples[int(len(samples)*0.8):]
     for i in range(int(len(samples)*0.8), len(samples)):
-        val_labels+=folder
+        val_labels.append(label_dict[folder])
+#print(test_labels)
+
+# train = tf.keras.utils.normalize(train, axis=1) #similar to dividing by 255 (but not equivalent in result)
+# test = tf.keras.utils.normalize(test, axis=1) #Also, don't know why we are using "axis=1" specifically, but that's what's normally used with image normalization
+# validate = tf.keras.utils.normalize(validation, axis=1) #Also, don't know why we are using "axis=1" specifically, but that's what's normally used with image normalization
+train_labels = np.array(train_labels)
+train = np.array(train_labels)
+
+test_labels = np.array(test_labels)
+val_labels=np.array(val_labels)
 
 
 '''
@@ -51,7 +69,7 @@ The hidden layers are the layers that come after the input layer and before the 
 These layers perform the bulk of the computation in the network, such as feature extraction and abstraction. 
 The output layer is the final layer in the network and it produces the output of the network.  
 '''
-
+ 
 model = models.Sequential()
 model.add(layers.Conv2D(32, (3, 3), activation='relu', input_shape=(32, 32, 3)))
 model.add(layers.MaxPooling2D((2, 2)))
@@ -68,6 +86,8 @@ model.add(layers.Dense(10))
 model.compile(optimizer='adam',
               loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
               metrics=['accuracy'])
+
+model.fit(train, train_labels, epochs=5)
 
 model.train_()
 

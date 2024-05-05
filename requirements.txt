@@ -3,4 +3,5 @@ cv
 tensorflow
 matplotlib
 pillow
+pickle
 numpy
