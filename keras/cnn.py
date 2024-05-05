@@ -35,6 +35,8 @@ le = LabelEncoder()
 print(len(label_set))
 le.fit(labels)
 labels = le.transform(labels)
+le_name_mapping = dict(zip(le.classes_, le.transform(le.classes_)))
+print(le_name_mapping)
 
 train_images, test_images, train_labels, test_labels = train_test_split(images, labels, test_size=0.2, random_state=42)
 train_images, val_images, train_labels, val_labels = train_test_split(train_images, train_labels, test_size=0.25, random_state=42)

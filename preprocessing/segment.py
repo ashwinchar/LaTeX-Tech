@@ -113,26 +113,44 @@ def segment_and_classify(image_path):
     cropped_images = []
     for index, (x, y, w, h) in enumerate(bounding_boxes):
         cropped_image = crop_and_blackout(bin_image_path, bounding_boxes, bounding_boxes[index])
-        cropped_images.append(cropped_image)
+        cropped_images.append((cropped_image, index))
         window_name = f'Cropped Image {index+1}'
         #cv2.imshow(window_name, cropped_image)
 
     # cv2.waitKey(0)
     # cv2.destroyAllWindows()
     model = keras.models.load_model('../keras/model.keras')
-    for img in cropped_images:
+    mappings = {'!': 0, '(': 1, ')': 2, '+': 3, ',': 4, '-': 5, '0': 6, '1': 7, '2': 8, '3': 9, '4': 10, '5': 11, '6': 12, 
+                '7': 13, '8': 14, '9': 15, '=': 16, 'A': 17, 'C': 18, 'Delta': 19, 'G': 20, 'H': 21, 'M': 22, 'N': 23, 'R': 24, 
+                'S': 25, 'T': 26, 'X': 27, '[': 28, ']': 29, 'alpha': 30, 'ascii_124': 31, 'b': 32, 'beta': 33, 'cos': 34, 'd': 35, 
+                'div': 36, 'e': 37, 'exists': 38, 'f': 39, 'forall': 40, 'forward_slash': 41, 'gamma': 42, 'geq': 43, 'gt': 44, 'i': 45, 
+                'in': 46, 'infty': 47, 'int': 48, 'j': 49, 'k': 50, 'l': 51, 'lambda': 52, 'ldots': 53, 'leq': 54, 'lim': 55, 'log': 56, 
+                'lt': 57, 'mu': 58, 'neq': 59, 'o': 60, 'p': 61, 'phi': 62, 'pi': 63, 'pm': 64, 'prime': 65, 'q': 66, 'rightarrow': 67, 
+                'sigma': 68, 'sin': 69, 'sqrt': 70, 'sum': 71, 'tan': 72, 'theta': 73, 'times': 74, 'u': 75, 'v': 76, 'w': 77, 'y': 78, 'z': 79, 
+                '{': 80, '}': 81}
+    inverse_mappings = dict((v,k) for k,v in mappings.items())
+    transformed_imgs = []
+    for img, index in cropped_images:
         img_pil = Image.fromarray(img)
         img_pil = img_pil.convert('L')
         img_resized = img_pil.resize((32, 32))
         img_array = np.array(img_resized)
         img_array = img_array.reshape((32, 32, 1))  # Correct channel information
         img_array = img_array / 255.0  # Normalization
+        transformed_imgs.append((img_array, index))
         img_array = np.expand_dims(img_array, axis=0)  # Batch dimension for prediction
         prediction = model.predict(img_array)
         e_x = np.exp(prediction - np.max(prediction))
         probabilities = e_x / e_x.sum(axis=1, keepdims=True)
         predicted_class = np.argmax(probabilities, axis=1)
-        print(predicted_class)
+        print(inverse_mappings[predicted_class[0]], index)
+
+    for cropped_image, index in transformed_imgs:
+        window_name = f'Cropped Image {index}'
+        cv2.imshow(window_name, cropped_image)
+
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
     
 
 # Example usage
