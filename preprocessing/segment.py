@@ -100,15 +100,13 @@ def resize_with_padding(image, desired_size=32):
     """
     Resize the image to the desired size while maintaining aspect ratio by padding with white pixels.
     """
-    old_size = image.size  # old_size[0] is in (width, height) format
+    old_size = image.size 
 
     ratio = float(desired_size) / max(old_size)
     new_size = tuple([int(x * ratio) for x in old_size])
 
-    # resize the image
     image = image.resize(new_size, Image.LANCZOS)
 
-    # create a new image and paste the resized image onto the center
     new_image = Image.new("L", (desired_size, desired_size), (0))  # 'L' for grayscale mode, 255 for white
     new_image.paste(image, ((desired_size - new_size[0]) // 2, (desired_size - new_size[1]) // 2))
 
@@ -123,6 +121,29 @@ def deblur_image(image):
                        [0, -1, 0]])
     return cv2.filter2D(image, -1, kernel)
 
+def thicken_lines(image, iterations=1):
+    """
+    Apply dilation to thicken the lines in the image.
+    """
+    kernel = np.ones((3, 3), np.uint8)
+    return cv2.dilate(image, kernel, iterations=iterations)
+
+def preprocess_and_predict(image, model):
+    """
+    Preprocess the image and make a prediction.
+    """
+    img_array = np.array(image)
+    img_array = img_array.reshape((32, 32, 1))  # Correct channel information
+    img_array = img_array / 255.0  # Normalization
+    img_array = np.expand_dims(img_array, axis=0)  # Batch dimension for prediction
+    prediction = model.predict(img_array)
+    e_x = np.exp(prediction - np.max(prediction))
+    probabilities = e_x / e_x.sum(axis=1, keepdims=True)
+    predicted_class = np.argmax(probabilities, axis=1)
+    confidence = np.max(probabilities, axis=1)[0]
+    print(confidence)
+    return predicted_class[0], confidence
+
 def segment_and_classify(image_path):
     image = cv2.imread(image_path)
 
@@ -135,7 +156,7 @@ def segment_and_classify(image_path):
     for (x, y, w, h) in bounding_boxes:
         cv2.rectangle(image, (x, y), (x+w, y+h), (255, 0, 0), 2)
     
-    cv2.imshow('Segmented Image with Bounding Boxes', image)
+    #cv2.imshow('Segmented Image with Bounding Boxes', image)
 
     cropped_images = []
     for index, (x, y, w, h) in enumerate(bounding_boxes):
@@ -156,31 +177,34 @@ def segment_and_classify(image_path):
                 'sigma': 68, 'sin': 69, 'sqrt': 70, 'sum': 71, 'tan': 72, 'theta': 73, 'times': 74, 'u': 75, 'v': 76, 'w': 77, 'y': 78, 'z': 79, 
                 '{': 80, '}': 81}
     inverse_mappings = dict((v,k) for k,v in mappings.items())
+    CONFIDENCE_THRESHOLD = 1
+
     transformed_imgs = []
     for img, index in cropped_images:
         img_pil = Image.fromarray(img)
         img_pil = img_pil.convert('L')
-
-        # Convert PIL image to OpenCV format
-        img_cv = np.array(img_pil)
-
-        # Apply deblurring
-        img_deblurred = deblur_image(img_cv)
-
-        # Convert back to PIL format
-        img_pil_deblurred = Image.fromarray(img_deblurred)
-
-        img_resized = resize_with_padding(img_pil_deblurred, 32)
+        
+        img_resized = resize_with_padding(img_pil, 32)
+        
+        predicted_class, confidence = preprocess_and_predict(img_resized, model)
+        
+        if confidence < CONFIDENCE_THRESHOLD:
+            img_cv = np.array(img_pil)
+            
+            img_deblurred = deblur_image(img_cv)
+            
+            img_thickened = thicken_lines(img_deblurred)
+            
+            img_pil_deblurred_thickened = Image.fromarray(img_thickened)
+            img_resized = resize_with_padding(img_pil_deblurred_thickened, 32)
+        
         img_array = np.array(img_resized)
-        img_array = img_array.reshape((32, 32, 1))  # Correct channel information
-        img_array = img_array / 255.0  # Normalization
+        img_array = img_array.reshape((32, 32, 1)) 
+        img_array = img_array / 255.0 
         transformed_imgs.append((img_array, index))
-        img_array = np.expand_dims(img_array, axis=0)  # Batch dimension for prediction
-        prediction = model.predict(img_array)
-        e_x = np.exp(prediction - np.max(prediction))
-        probabilities = e_x / e_x.sum(axis=1, keepdims=True)
-        predicted_class = np.argmax(probabilities, axis=1)
-        print(inverse_mappings[predicted_class[0]], index)
+        
+        predicted_class, confidence = preprocess_and_predict(img_resized, model)
+        print(inverse_mappings[predicted_class], index)
 
     for cropped_image, index in transformed_imgs:
         window_name = f'Cropped Image {index}'
