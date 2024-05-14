@@ -96,6 +96,33 @@ def crop_and_blackout(image_path, bounding_boxes, main_box):
     black_out_nested_boxes(cropped_image, bounding_boxes, main_box)
     return cropped_image
 
+def resize_with_padding(image, desired_size=32):
+    """
+    Resize the image to the desired size while maintaining aspect ratio by padding with white pixels.
+    """
+    old_size = image.size  # old_size[0] is in (width, height) format
+
+    ratio = float(desired_size) / max(old_size)
+    new_size = tuple([int(x * ratio) for x in old_size])
+
+    # resize the image
+    image = image.resize(new_size, Image.LANCZOS)
+
+    # create a new image and paste the resized image onto the center
+    new_image = Image.new("L", (desired_size, desired_size), (0))  # 'L' for grayscale mode, 255 for white
+    new_image.paste(image, ((desired_size - new_size[0]) // 2, (desired_size - new_size[1]) // 2))
+
+    return new_image
+
+def deblur_image(image):
+    """
+    Apply a sharpening filter to the image to reduce blurriness.
+    """
+    kernel = np.array([[0, -1, 0],
+                       [-1, 5, -1],
+                       [0, -1, 0]])
+    return cv2.filter2D(image, -1, kernel)
+
 def segment_and_classify(image_path):
     image = cv2.imread(image_path)
 
@@ -108,7 +135,7 @@ def segment_and_classify(image_path):
     for (x, y, w, h) in bounding_boxes:
         cv2.rectangle(image, (x, y), (x+w, y+h), (255, 0, 0), 2)
     
-    #cv2.imshow('Segmented Image with Bounding Boxes', image)
+    cv2.imshow('Segmented Image with Bounding Boxes', image)
 
     cropped_images = []
     for index, (x, y, w, h) in enumerate(bounding_boxes):
@@ -133,7 +160,17 @@ def segment_and_classify(image_path):
     for img, index in cropped_images:
         img_pil = Image.fromarray(img)
         img_pil = img_pil.convert('L')
-        img_resized = img_pil.resize((32, 32))
+
+        # Convert PIL image to OpenCV format
+        img_cv = np.array(img_pil)
+
+        # Apply deblurring
+        img_deblurred = deblur_image(img_cv)
+
+        # Convert back to PIL format
+        img_pil_deblurred = Image.fromarray(img_deblurred)
+
+        img_resized = resize_with_padding(img_pil_deblurred, 32)
         img_array = np.array(img_resized)
         img_array = img_array.reshape((32, 32, 1))  # Correct channel information
         img_array = img_array / 255.0  # Normalization
