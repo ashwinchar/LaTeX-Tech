@@ -5,8 +5,11 @@ import numpy as np
 import tensorflow as tf
 import keras
 from PIL import Image
-
 import cv2
+
+
+
+final=""
 
 def is_at_least_half_inside(box1, box2):
     """ Check if at least 50% of box2 is inside box1 """
@@ -56,7 +59,7 @@ def merge_vertically_aligned_boxes(bounding_boxes):
     """ Merge all vertically aligned bounding boxes. """
     merged = []
     skip_indices = set()
-
+    
     for i in range(len(bounding_boxes)):
         if i in skip_indices:
             continue
@@ -71,8 +74,10 @@ def merge_vertically_aligned_boxes(bounding_boxes):
                 skip_indices.add(j)
 
         merged.append(current_box)
+        merged_dict={}
+        merged_dict[current_box]=i
 
-    return merged
+    return merged, merged_dict
 
 
 def black_out_nested_boxes(image, bounding_boxes, main_box):
@@ -151,11 +156,16 @@ def segment_and_classify(image_path):
     
     contours, _ = cv2.findContours(gray_image, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     bounding_boxes = [cv2.boundingRect(contour) for contour in contours]
-    bounding_boxes=merge_vertically_aligned_boxes(bounding_boxes)
-    
+    bounding_boxes, merged_dict=merge_vertically_aligned_boxes(bounding_boxes)
+    print(bounding_boxes)
     for (x, y, w, h) in bounding_boxes:
         cv2.rectangle(image, (x, y), (x+w, y+h), (255, 0, 0), 2)
-    
+
+    bounding_boxes=sorted(
+    bounding_boxes, 
+    key=lambda x: x[0])
+
+    print(bounding_boxes)
     #cv2.imshow('Segmented Image with Bounding Boxes', image)
 
     cropped_images = []
@@ -204,7 +214,11 @@ def segment_and_classify(image_path):
         transformed_imgs.append((img_array, index))
         
         predicted_class, confidence = preprocess_and_predict(img_resized, model)
+        global final
+        final+=inverse_mappings[predicted_class]
+        print(final)
         print(inverse_mappings[predicted_class], index)
+    
 
     for cropped_image, index in transformed_imgs:
         window_name = f'Cropped Image {index}'
@@ -215,6 +229,7 @@ def segment_and_classify(image_path):
     
 
 # Example usage
-bin_image_path = '../data/test_input/test_segment.png'
+bin_image_path = '../data/test_output/test.png'
 output_dir = '../data/test_output'
 segment_and_classify(bin_image_path)
+print("final",final)
