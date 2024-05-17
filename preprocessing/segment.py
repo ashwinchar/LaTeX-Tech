@@ -225,7 +225,7 @@ def segment_and_classify(image_path):
         
         predicted_class, confidence = preprocess_and_predict(img_resized, model)
         global final
-        if(superscript[i]==1 and final[len(final)-1]!="="):
+        if(superscript[i]==1 and final[len(final)-1]!="=" and final[len(final)-1]!="y"):
             final+="^"
         final+=inverse_mappings[predicted_class]
         print(final)
