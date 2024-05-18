@@ -170,9 +170,9 @@ def segment_and_classify(image_path):
         (x, y, w, h)=bounding_boxes[i]
         prev_y=bounding_boxes[i-1][1]
         prev_h=bounding_boxes[i-1][3]
-        if((prev_y+prev_h)-(y+h)>20):
+        if((prev_y+prev_h)-(y+h)>h*.45):
             superscript[i]=1
-        if((y+h)-(prev_y+prev_h)>20):
+        if((y+h)-(prev_y+prev_h)>h*.45):
             superscript[i]=2
 
     print(bounding_boxes)
@@ -189,12 +189,12 @@ def segment_and_classify(image_path):
     # cv2.destroyAllWindows()
     model = keras.models.load_model('../keras/model.keras')
     mappings = {'!': 0, '(': 1, ')': 2, '+': 3, ',': 4, '-': 5, '0': 6, '1': 7, '2': 8, '3': 9, '4': 10, '5': 11, '6': 12, 
-                '7': 13, '8': 14, '9': 15, '=': 16, 'A': 17, 'C': 18, '\Delta': 19, 'G': 20, 'H': 21, 'M': 22, 'N': 23, 'R': 24, 
-                'S': 25, 'T': 26, 'X': 27, '[': 28, ']': 29, '\alpha': 30, 'ascii_124': 31, 'b': 32, 'beta': 33, '\cos': 34, 'd': 35, 
-                '\div': 36, 'e': 37, 'exists': 38, 'f': 39, 'r': 40, 'forward_slash': 41, 'gamma': 42, '\geq': 43, '\gt': 44, 'i': 45, 
-                'in': 46, '\infty': 47, 'int': 48, 'j': 49, 'k': 50, 'l': 51, 'lambda': 52, 'ldots': 53, '\leq': 54, 'lim': 55, 'log': 56, 
-                'lt': 57, '\mu': 58, '\neq': 59, 'o': 60, 'p': 61, 'phi': 62, '\pi': 63, 'pm': 64, 'prime': 65, 'q': 66, 'rightarrow': 67, 
-                '\Sigma': 68, '\sin': 69, '\sqrt{': 70, '\sum': 71, '\tan': 72, '\theta': 73, 'times': 74, 'u': 75, 'v': 76, 'w': 77, 'y': 78, 'z': 79, 
+                '7': 13, '8': 14, '9': 15, '=': 16, 'A': 17, 'C': 18, '\Delta ': 19, 'G': 20, 'H': 21, 'M': 22, 'N': 23, 'R': 24, 
+                'S': 25, 'T': 26, 'X': 27, '[': 28, ']': 29, '\alpha ': 30, 'ascii_124': 31, 'b': 32, 'beta': 33, '\cos ': 34, 'd': 35, 
+                '\div ': 36, 'e': 37, 'exists': 38, 'f': 39, 'r': 40, 'forward_slash': 41, '\gamm ': 42, '\geq ': 43, '\gt ': 44, 'i': 45, 
+                'in': 46, '\infty': 47, 'int': 48, 'j': 49, 'k': 50, 'l': 51, 'lambda': 52, 'ldots': 53, '\leq ': 54, 'lim': 55, 'log': 56, 
+                'lt': 57, '\mu ': 58, '\neq ': 59, 'o': 60, 'p': 61, '\phi ': 62, '\pi ': 63, 'pm': 64, 'prime': 65, 'q': 66, 'rightarrow': 67, 
+                '\Sigma ': 68, '\sin ': 69, '\sqrt{': 70, '\sum ': 71, '\tan ': 72, '\theta ': 73, 'times': 74, 'u': 75, 'v': 76, 'w': 77, 'y': 78, 'z': 79, 
                 '{': 80, '}': 81}
     inverse_mappings = dict((v,k) for k,v in mappings.items())
     CONFIDENCE_THRESHOLD = 1
@@ -228,22 +228,25 @@ def segment_and_classify(image_path):
         global final
         if(superscript[i]==1 and final[len(final)-1]!="=" and final[len(final)-1]!="y" and final[len(final)-1]!="g" and final[len(final)-1]!="}" and final[len(final)-1]!="{"):
             final+="^"
-        elif(superscript[i]==2 and  final[len(final)-1]!="=" and inverse_mappings[predicted_class]!="=" and inverse_mappings[predicted_class]!="y" and inverse_mappings[predicted_class]!="g"):
+        elif(superscript[i]==2 and  final[len(final)-1]!="=" and inverse_mappings[predicted_class]!="=" and 
+             inverse_mappings[predicted_class]!="y" and inverse_mappings[predicted_class]!="g" and superscript[i-1]!=1):
             final+="_"
         final+=inverse_mappings[predicted_class]
         print("$"+final+"$")
         print(inverse_mappings[predicted_class], index)
     
 
-    # for cropped_image, index in transformed_imgs:
-    #     window_name = f'Cropped Image {index}'
-    #     cv2.imshow(window_name, cropped_image)
+    for cropped_image, index in transformed_imgs:
+        window_name = f'Cropped Image {index}'
+        cv2.imshow(window_name, cropped_image)
 
     cv2.waitKey(0)
     cv2.destroyAllWindows()
     
 
 # Example usage
-bin_image_path = '../data/test_output/test.png'
+bin_image_path = '../data/test_output/imagecopy.png'
+# bin_image_path = '../data/test_output/imagecopy.png'
+
 output_dir = '../data/test_output'
 segment_and_classify(bin_image_path)
